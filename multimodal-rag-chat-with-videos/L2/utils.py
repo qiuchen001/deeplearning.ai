@@ -28,8 +28,9 @@ from langchain_core.messages import (
 
 MultimodalModelInput = Union[PromptValue, str, Sequence[MessageLikeRepresentation], Dict[str, Any]]
 
+
 def get_from_dict_or_env(
-    data: Dict[str, Any], key: str, env_key: str, default: Optional[str] = None
+        data: Dict[str, Any], key: str, env_key: str, default: Optional[str] = None
 ) -> str:
     """Get a value from a dictionary or an environment variable."""
     if key in data and data[key]:
@@ -37,20 +38,24 @@ def get_from_dict_or_env(
     else:
         return get_from_env(key, env_key, default=default)
 
+
 def get_from_env(key: str, env_key: str, default: Optional[str] = None) -> str:
     """Get a value from a dictionary or an environment variable."""
     if env_key in os.environ and os.environ[env_key]:
         return os.environ[env_key]
     else:
         return default
-        
+
+
 def load_env():
     _ = load_dotenv(find_dotenv())
+
 
 def get_openai_api_key():
     load_env()
     openai_api_key = os.getenv("OPENAI_API_KEY")
     return openai_api_key
+
 
 def get_prediction_guard_api_key():
     load_env()
@@ -58,8 +63,10 @@ def get_prediction_guard_api_key():
     if PREDICTION_GUARD_API_KEY is None:
         PREDICTION_GUARD_API_KEY = input("Please enter your Prediction Guard API Key: ")
     return PREDICTION_GUARD_API_KEY
-    
-PREDICTION_GUARD_URL_ENDPOINT = os.getenv("DLAI_PREDICTION_GUARD_URL_ENDPOINT", "https://dl-itdc.predictionguard.com") ###"https://proxy-dl-itdc.predictionguard.com"
+
+
+PREDICTION_GUARD_URL_ENDPOINT = os.getenv("DLAI_PREDICTION_GUARD_URL_ENDPOINT",
+                                          "https://dl-itdc.predictionguard.com")  ###"https://proxy-dl-itdc.predictionguard.com"
 
 # prompt templates
 templates = [
@@ -68,6 +75,7 @@ templates = [
     'a nice {}',
     'a beautiful {}',
 ]
+
 
 # function helps to prepare list image-text pairs from the first [test_size] data of a Huggingface dataset
 def prepare_dataset_for_umap_visualization(hf_dataset, class_name, templates=templates, test_size=1000):
@@ -80,11 +88,11 @@ def prepare_dataset_for_umap_visualization(hf_dataset, class_name, templates=tem
     img_txt_pairs = []
     for i in range(len(test_dataset)):
         img_txt_pairs.append({
-            'caption' : templates[random.randint(0, len(templates)-1)].format(class_name),
-            'pil_img' : test_dataset[i]['image']
+            'caption': templates[random.randint(0, len(templates) - 1)].format(class_name),
+            'pil_img': test_dataset[i]['image']
         })
     return img_txt_pairs
-    
+
 
 def download_video(video_url, path='/tmp/'):
     print(f'Getting video information for {video_url}')
@@ -97,7 +105,7 @@ def download_video(video_url, path='/tmp/'):
 
     def progress_callback(stream: Stream, data_chunk: bytes, bytes_remaining: int) -> None:
         pbar.update(len(data_chunk))
-    
+
     yt = YouTube(video_url, on_progress_callback=progress_callback)
     stream = yt.streams.filter(progressive=True, file_extension='mp4', res='720p').desc().first()
     if stream is None:
@@ -105,12 +113,13 @@ def download_video(video_url, path='/tmp/'):
     if not os.path.exists(path):
         os.makedirs(path)
     filepath = os.path.join(path, stream.default_filename)
-    if not os.path.exists(filepath):   
+    if not os.path.exists(filepath):
         print('Downloading video from YouTube...')
         pbar = tqdm(desc='Downloading video from YouTube', total=stream.filesize, unit="bytes")
         stream.download(path)
         pbar.close()
     return filepath
+
 
 def get_video_id_from_url(video_url):
     """
@@ -134,24 +143,25 @@ def get_video_id_from_url(video_url):
             return url.path.split('/')[2]
 
     return video_url
-    
+
+
 # if this has transcript then download
 def get_transcript_vtt(video_url, path='/tmp'):
     video_id = get_video_id_from_url(video_url)
-    filepath = os.path.join(path,'captions.vtt')
+    filepath = os.path.join(path, 'captions.vtt')
     if os.path.exists(filepath):
         return filepath
 
     transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en-GB', 'en'])
     formatter = WebVTTFormatter()
     webvtt_formatted = formatter.format_transcript(transcript)
-    
+
     with open(filepath, 'w', encoding='utf-8') as webvtt_file:
         webvtt_file.write(webvtt_formatted)
     webvtt_file.close()
 
     return filepath
-    
+
 
 # helper function for convert time in second to time format for .vtt or .srt file
 def format_timestamp(seconds: float, always_include_hours: bool = False, fractionalSeperator: str = '.'):
@@ -170,6 +180,7 @@ def format_timestamp(seconds: float, always_include_hours: bool = False, fractio
     hours_marker = f"{hours:02d}:" if always_include_hours or hours > 0 else ""
     return f"{hours_marker}{minutes:02d}:{seconds:02d}{fractionalSeperator}{milliseconds:03d}"
 
+
 # a help function that helps to convert a specific time written as a string in format `webvtt` into a time in miliseconds
 def str2time(strtime):
     # strip character " if exists
@@ -177,16 +188,18 @@ def str2time(strtime):
     # get hour, minute, second from time string
     hrs, mins, seconds = [float(c) for c in strtime.split(':')]
     # get the corresponding time as total seconds 
-    total_seconds = hrs * 60**2 + mins * 60 + seconds
+    total_seconds = hrs * 60 ** 2 + mins * 60 + seconds
     total_miliseconds = total_seconds * 1000
     return total_miliseconds
-    
+
+
 def _processText(text: str, maxLineWidth=None):
     if (maxLineWidth is None or maxLineWidth < 0):
         return text
 
     lines = textwrap.wrap(text, width=maxLineWidth, tabsize=4)
     return '\n'.join(lines)
+
 
 # Resizes a image and maintains aspect ratio
 def maintain_aspect_ratio_resize(image, width=None, height=None, inter=cv2.INTER_AREA):
@@ -211,7 +224,8 @@ def maintain_aspect_ratio_resize(image, width=None, height=None, inter=cv2.INTER
 
     # Return the resized image
     return cv2.resize(image, dim, interpolation=inter)
-    
+
+
 # helper function to convert transcripts generated by whisper to .vtt file
 def write_vtt(transcript: Iterator[dict], file: TextIO, maxLineWidth=None):
     print("WEBVTT\n", file=file)
@@ -224,6 +238,7 @@ def write_vtt(transcript: Iterator[dict], file: TextIO, maxLineWidth=None):
             file=file,
             flush=True,
         )
+
 
 # helper function to convert transcripts generated by whisper to .srt file
 def write_srt(transcript: Iterator[dict], file: TextIO, maxLineWidth=None):
@@ -251,7 +266,8 @@ def write_srt(transcript: Iterator[dict], file: TextIO, maxLineWidth=None):
             flush=True,
         )
 
-def getSubs(segments: Iterator[dict], format: str, maxLineWidth: int=-1) -> str:
+
+def getSubs(segments: Iterator[dict], format: str, maxLineWidth: int = -1) -> str:
     segmentStream = StringIO()
 
     if format == 'vtt':
@@ -263,6 +279,7 @@ def getSubs(segments: Iterator[dict], format: str, maxLineWidth: int=-1) -> str:
 
     segmentStream.seek(0)
     return segmentStream.read()
+
 
 # encoding image at given path or PIL Image using base64
 def encode_image(image_path_or_PIL_img):
@@ -276,19 +293,21 @@ def encode_image(image_path_or_PIL_img):
         with open(image_path_or_PIL_img, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
 
+
 # checking whether the given string is base64 or not
 def isBase64(sb):
     try:
         if isinstance(sb, str):
-                # If there's any unicode here, an exception will be thrown and the function will return false
-                sb_bytes = bytes(sb, 'ascii')
+            # If there's any unicode here, an exception will be thrown and the function will return false
+            sb_bytes = bytes(sb, 'ascii')
         elif isinstance(sb, bytes):
-                sb_bytes = sb
+            sb_bytes = sb
         else:
-                raise ValueError("Argument must be string or bytes")
+            raise ValueError("Argument must be string or bytes")
         return base64.b64encode(base64.b64decode(sb_bytes)) == sb_bytes
     except Exception:
-            return False
+        return False
+
 
 def encode_image_from_path_or_url(image_path_or_url):
     try:
@@ -301,13 +320,14 @@ def encode_image_from_path_or_url(image_path_or_url):
         with open(image_path_or_url, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
 
+
 # helper function to compute the joint embedding of a prompt and a base64-encoded image through PredictionGuard
 def bt_embedding_from_prediction_guard(prompt, base64_image):
     # get PredictionGuard client
     client = _getPredictionGuardClient()
-    message = {"text": prompt,}
+    message = {"text": prompt, }
     if base64_image is not None and base64_image != "":
-        if not isBase64(base64_image): 
+        if not isBase64(base64_image):
             raise TypeError("image input must be in base64 encoding!")
         message['image'] = base64_image
     response = client.embeddings.create(
@@ -316,26 +336,29 @@ def bt_embedding_from_prediction_guard(prompt, base64_image):
     )
     return response['data'][0]['embedding']
 
-    
+
 def load_json_file(file_path):
     # Open the JSON file in read mode
     with open(file_path, 'r') as file:
         data = json.load(file)
     return data
 
+
 def display_retrieved_results(results):
     print(f'There is/are {len(results)} retrieved result(s)')
     print()
     for i, res in enumerate(results):
-        print(f'The caption of the {str(i+1)}-th retrieved result is:\n"{results[i].page_content}"')
+        print(f'The caption of the {str(i + 1)}-th retrieved result is:\n"{results[i].page_content}"')
         print()
         display(Image.open(results[i].metadata['metadata']['extracted_frame_path']))
         print("------------------------------------------------------------")
 
+
 class SeparatorStyle(Enum):
     """Different separator style."""
     SINGLE = auto()
-    
+
+
 @dataclasses.dataclass
 class Conversation:
     """A class that keeps all conversation history"""
@@ -345,21 +368,21 @@ class Conversation:
     map_roles: Dict[str, str]
     version: str = "Unknown"
     sep_style: SeparatorStyle = SeparatorStyle.SINGLE
-    sep: str = "\n"    
+    sep: str = "\n"
 
     def _get_prompt_role(self, role):
         if self.map_roles is not None and role in self.map_roles.keys():
             return self.map_roles[role]
         else:
             return role
-            
+
     def _build_content_for_first_message_in_conversation(self, first_message: List[str]):
         content = []
         if len(first_message) != 2:
             raise TypeError("First message in Conversation needs to include a prompt and a base64-enconded image!")
-        
+
         prompt, b64_image = first_message[0], first_message[1]
-        
+
         # handling prompt
         if prompt is None:
             raise TypeError("API does not support None prompt yet")
@@ -369,11 +392,11 @@ class Conversation:
         })
         if b64_image is None:
             raise TypeError("API does not support text only conversation yet")
-            
+
         # handling image
         if not isBase64(b64_image):
             raise TypeError("Image in Conversation's first message must be stored under base64 encoding!")
-        
+
         content.append({
             "type": "image_url",
             "image_url": {
@@ -386,26 +409,26 @@ class Conversation:
 
         if follow_up_message is not None and len(follow_up_message) > 1:
             raise TypeError("Follow-up message in Conversation must not include an image!")
-        
+
         # handling text prompt
         if follow_up_message is None or follow_up_message[0] is None:
             raise TypeError("Follow-up message in Conversation must include exactly one text message")
 
         text = follow_up_message[0]
         return text
-        
+
     def get_message(self):
         messages = self.messages
         api_messages = []
         for i, msg in enumerate(messages):
             role, message_content = msg
-            if i == 0:                
+            if i == 0:
                 # get content for very first message in conversation
                 content = self._build_content_for_first_message_in_conversation(message_content)
             else:
                 # get content for follow-up message in conversation
                 content = self._build_content_for_follow_up_messages_in_conversation(message_content)
-                
+
             api_messages.append({
                 "role": role,
                 "content": content,
@@ -439,7 +462,7 @@ class Conversation:
             raise ValueError(f"Invalid style: {self.sep_style}")
 
         return ret
-    
+
     def append_message(self, role, message):
         if len(self.messages) == 0:
             # data verification for the very first message
@@ -452,14 +475,14 @@ class Conversation:
             # data verification for follow-up message
             assert role in self.roles, f"the follow-up message must be from one of the roles {self.roles}"
             assert len(message) == 1, f"the follow-up message must consist of one text message only, no image"
-            
+
         self.messages.append([role, message])
 
     def copy(self):
         return Conversation(
             system=self.system,
             roles=self.roles,
-            messages=[[x,y] for x, y in self.messages],
+            messages=[[x, y] for x, y in self.messages],
             version=self.version,
             map_roles=self.map_roles,
         )
@@ -472,6 +495,7 @@ class Conversation:
             "version": self.version,
         }
 
+
 prediction_guard_llava_conv = Conversation(
     system="",
     roles=("user", "assistant"),
@@ -479,10 +503,11 @@ prediction_guard_llava_conv = Conversation(
     version="Prediction Guard LLaVA enpoint Conversation v0",
     sep_style=SeparatorStyle.SINGLE,
     map_roles={
-        "user": "USER", 
+        "user": "USER",
         "assistant": "ASSISTANT"
     }
 )
+
 
 # get PredictionGuard Client
 def _getPredictionGuardClient():
@@ -493,16 +518,19 @@ def _getPredictionGuardClient():
     )
     return client
 
+
 # helper function to call chat completion endpoint of PredictionGuard given a prompt and an image
-def lvlm_inference(prompt, image, max_tokens: int = 200, temperature: float = 0.95, top_p: float = 0.1, top_k: int = 10):
+def lvlm_inference(prompt, image, max_tokens: int = 200, temperature: float = 0.95, top_p: float = 0.1,
+                   top_k: int = 10):
     # prepare conversation
     conversation = prediction_guard_llava_conv.copy()
     conversation.append_message(conversation.roles[0], [prompt, image])
-    return lvlm_inference_with_conversation(conversation, max_tokens=max_tokens, temperature=temperature, top_p=top_p, top_k=top_k)
-    
-    
+    return lvlm_inference_with_conversation(conversation, max_tokens=max_tokens, temperature=temperature, top_p=top_p,
+                                            top_k=top_k)
 
-def lvlm_inference_with_conversation(conversation, max_tokens: int = 200, temperature: float = 0.95, top_p: float = 0.1, top_k: int = 10):
+
+def lvlm_inference_with_conversation(conversation, max_tokens: int = 200, temperature: float = 0.95, top_p: float = 0.1,
+                                     top_k: int = 10):
     # get PredictionGuard client
     client = _getPredictionGuardClient()
     # get message from conversation
